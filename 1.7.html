@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VECTOR STORM: ENTROPY PROTOCOL // VERTEX LUDUS BUILD V1.7</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --terminal-green: #00ff41;
+            --alert-red: #ff0033;
+            --power-blue: #00ccff;
+            --power-yellow: #ffcc00;
+            --seeker-orange: #ff6600;
+            --boss-purple: #bd00ff;
+            --ui-font: 'Courier New', Courier, monospace;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--terminal-green);
+            font-family: var(--ui-font);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            text-shadow: 0 0 5px var(--terminal-green);
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .score-block {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .sub-score {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .hud-center {
+            position: absolute;
+            top: 20%;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .wave-text {
+            font-size: 4rem;
+            color: var(--terminal-green);
+            opacity: 0;
+            transition: opacity 0.5s;
+            text-shadow: 0 0 20px var(--terminal-green);
+        }
+
+        .boss-health-container {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 10px;
+            border: 2px solid var(--boss-purple);
+            display: none; 
+        }
+        
+        .boss-health-fill {
+            width: 100%;
+            height: 100%;
+            background-color: var(--boss-purple);
+            transition: width 0.1s;
+        }
+
+        .hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        #dash-meter { color: var(--power-blue); font-weight: bold; }
+        #weapon-status { color: var(--power-yellow); font-weight: bold; }
+        #shield-status { color: var(--terminal-green); font-weight: bold; display: none; }
+        #difficulty-display { color: #888; font-size: 0.8rem; margin-top: 5px;}
+
+        /* SCREEN STYLES */
+        .full-screen-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: auto;
+            cursor: default;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: glitch 1s infinite alternate;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #888;
+            letter-spacing: 3px;
+        }
+
+        p { font-size: 1.2rem; margin-top: 0; color: #888; margin-bottom: 2rem;}
+
+        .records-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .record-box {
+            display: flex;
+            flex-direction: column;
+        }
+        .record-label { font-size: 0.8rem; color: #666; }
+        .record-value { font-size: 1.5rem; color: var(--terminal-green); font-weight: bold; }
+
+        .btn-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: 2px solid var(--terminal-green);
+            background: transparent;
+            color: var(--terminal-green);
+            font-family: var(--ui-font);
+            font-size: 1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--terminal-green);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+        }
+
+        .btn-hard {
+            border-color: var(--alert-red);
+            color: var(--alert-red);
+            box-shadow: 0 0 10px rgba(255, 0, 51, 0.2);
+        }
+        .btn-hard:hover {
+            background: var(--alert-red);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(255, 0, 51, 0.6);
+        }
+
+        .btn-easy {
+            border-color: var(--power-blue);
+            color: var(--power-blue);
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.2);
+        }
+        .btn-easy:hover {
+            background: var(--power-blue);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(0, 204, 255, 0.6);
+        }
+
+        .btn-db {
+            border-color: #888;
+            color: #888;
+            box-shadow: 0 0 10px rgba(136, 136, 136, 0.2);
+        }
+        .btn-db:hover {
+            background: #888;
+            color: #000;
+            box-shadow: 0 0 20px rgba(136, 136, 136, 0.6);
+        }
+
+        /* Top Left Buttons */
+        .top-left-controls {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            min-width: auto;
+            padding: 10px 20px;
+            font-size: 0.8rem;
+        }
+
+        /* DB Screen specific */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-item .label { font-size: 0.8rem; color: #666; }
+        .stat-item .value { font-size: 2rem; color: var(--power-blue); }
+        
+        .db-list {
+            text-align: left;
+            margin-bottom: 30px;
+            border: 1px solid #333;
+            padding: 20px;
+            background: rgba(0,0,0,0.5);
+        }
+        .db-row {
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+            margin-bottom: 5px;
+            border-bottom: 1px dotted #333;
+        }
+
+        /* Settings Screen Specific */
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 300px;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #333;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .setting-row:hover {
+            background: rgba(0, 255, 65, 0.1);
+            border-color: var(--terminal-green);
+        }
+
+        .setting-val {
+            font-weight: bold;
+        }
+        
+        .val-on { color: var(--terminal-green); }
+        .val-off { color: var(--alert-red); }
+
+        .scanlines {
+            position: fixed;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.3;
+            display: block; /* Controlled by JS */
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 var(--alert-red), -2px 0 blue; transform: skew(0deg); }
+            20% { text-shadow: -2px 0 var(--alert-red), 2px 0 blue; transform: skew(10deg); }
+            40% { text-shadow: 2px 0 var(--alert-red), -2px 0 blue; transform: skew(-5deg); }
+            60% { text-shadow: 0 0 transparent; transform: skew(0deg); }
+            100% { text-shadow: 2px 0 var(--alert-red), -2px 0 blue; }
+        }
+
+        #debug-info {
+            position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: #555; text-align: right;
+        }
+
+        .new-record-anim {
+            animation: pulseRecord 0.5s infinite alternate;
+            color: var(--power-yellow);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        @keyframes pulseRecord {
+            from { transform: scale(1); text-shadow: 0 0 10px var(--power-yellow); }
+            to { transform: scale(1.1); text-shadow: 0 0 20px var(--power-yellow); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="scanlines-layer" class="scanlines"></div>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="score-block">
+                <div id="score-display">SCORE: 0</div>
+                <div id="highscore-display" class="sub-score">HI: 0</div>
+                <div id="difficulty-display">MODE: NORMAL</div>
+            </div>
+            <div id="health-display">INTEGRITY: 100%</div>
+        </div>
+        
+        <div id="boss-ui" class="boss-health-container">
+            <div id="boss-health-bar" class="boss-health-fill"></div>
+        </div>
+
+        <div class="hud-center">
+            <div id="wave-display" class="wave-text">WAVE 1</div>
+        </div>
+
+        <div class="hud-bottom">
+            <div>
+                <div id="dash-meter">DASH: READY</div>
+                <div id="shield-status">SHIELD: ACTIVE</div>
+                <div id="weapon-status">WEAPON: STANDARD</div>
+            </div>
+            <div>WASD: Mover | SPACE: Dash | MOUSE: Mirar/Atirar</div>
+        </div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="full-screen-ui">
+        
+        <!-- TOP LEFT MENU -->
+        <div class="top-left-controls">
+            <div class="btn btn-db btn-small" onclick="GameEngine.showDatabase()">DATABASE</div>
+            <div class="btn btn-db btn-small" onclick="GameEngine.showSettings()">CONFIG</div>
+        </div>
+
+        <h1 id="main-title">Vector Storm</h1>
+        <p id="sub-title">ENTROPY PROTOCOL V.1.7</p>
+        
+        <div id="record-notification"></div>
+        
+        <div class="btn-container">
+            <div class="btn btn-easy" onclick="GameEngine.init(0)">RECRUTA</div>
+            <div class="btn" onclick="GameEngine.init(1)">VETERANO</div>
+            <div class="btn btn-hard" onclick="GameEngine.init(2)">ELITE</div>
+        </div>
+    </div>
+
+    <!-- DATABASE SCREEN -->
+    <div id="database-screen" class="full-screen-ui" style="display:none;">
+        <h1>SYSTEM DATABASE</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="label">TOTAL DEPLOYMENTS</span>
+                <span id="db-total-games" class="value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">LAST OPERATION</span>
+                <span id="db-last-score" class="value">0</span>
+            </div>
+        </div>
+
+        <div class="db-list">
+            <div class="db-row"><span>RECRUTA RECORD</span> <span id="db-rec-easy" style="color:var(--power-blue)">0</span></div>
+            <div class="db-row"><span>VETERANO RECORD</span> <span id="db-rec-normal" style="color:var(--terminal-green)">0</span></div>
+            <div class="db-row"><span>ELITE RECORD</span> <span id="db-rec-hard" style="color:var(--alert-red)">0</span></div>
+        </div>
+
+        <div class="btn-container">
+            <div class="btn btn-hard" onclick="StorageSystem.purgeData()">PURGE DATA</div>
+            <div class="btn" onclick="GameEngine.showStartScreen()">RETURN</div>
+        </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div id="settings-screen" class="full-screen-ui" style="display:none;">
+        <h1>OPTICS CONFIG</h1>
+        
+        <div class="settings-list">
+            <div class="setting-row" onclick="GameEngine.toggleSetting('scanlines')">
+                <span>CRT SCANLINES</span>
+                <span id="opt-scanlines" class="setting-val val-on">ON</span>
+            </div>
+            <div class="setting-row" onclick="GameEngine.toggleSetting('bloom')">
+                <span>NEON BLOOM</span>
+                <span id="opt-bloom" class="setting-val val-on">ON</span>
+            </div>
+            <div class="setting-row" onclick="GameEngine.toggleSetting('particles')">
+                <span>PARTICLES</span>
+                <span id="opt-particles" class="setting-val val-on">ON</span>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <div class="btn" onclick="GameEngine.showStartScreen()">RETURN</div>
+        </div>
+    </div>
+
+    <div id="debug-info">Vertex Ludus Engine | Settings Module | V1.7</div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+/**
+ * VERTEX LUDUS ENGINE CORE V1.7
+ * Architecture: ECS + Procedural Audio + Wave System + Boss Fights + Adaptive Difficulty + Persistence + Settings
+ */
+
+// --- STORAGE SYSTEM (Persistence Layer) ---
+const StorageSystem = {
+    KEY: 'VECTOR_STORM_DATA_V1',
+    data: {
+        highscores: [0, 0, 0], // 0: Easy, 1: Normal, 2: Hard
+        totalGames: 0,
+        lastScore: 0,
+        preferences: {
+            scanlines: true,
+            bloom: true,
+            particles: true
+        }
+    },
+
+    load() {
+        try {
+            const raw = localStorage.getItem(this.KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                // Merge cleanly to ensure new keys (like preferences) exist if loading old save
+                this.data = {
+                    ...this.data,
+                    ...parsed,
+                    preferences: { ...this.data.preferences, ...(parsed.preferences || {}) }
+                };
+                
+                if(!this.data.highscores || this.data.highscores.length !== 3) {
+                    this.data.highscores = [0, 0, 0];
+                }
+            }
+        } catch (e) {
+            console.warn("Storage Core Fault:", e);
+        }
+        this.applyPreferences();
+        this.updateUI();
+    },
+
+    save() {
+        try {
+            localStorage.setItem(this.KEY, JSON.stringify(this.data));
+        } catch (e) {
+            console.warn("Write Core Fault:", e);
+        }
+    },
+
+    registerScore(difficulty, score) {
+        this.data.totalGames++;
+        this.data.lastScore = score;
+        let isRecord = false;
+
+        if (score > this.data.highscores[difficulty]) {
+            this.data.highscores[difficulty] = score;
+            isRecord = true;
+        }
+        this.save();
+        this.updateUI();
+        return isRecord;
+    },
+
+    getHighscore(difficulty) {
+        return this.data.highscores[difficulty] || 0;
+    },
+
+    togglePreference(key) {
+        this.data.preferences[key] = !this.data.preferences[key];
+        this.save();
+        this.applyPreferences();
+        this.updateUI(); // Refresh settings menu UI
+        return this.data.preferences[key];
+    },
+
+    applyPreferences() {
+        // Apply Scanlines
+        const scanlinesEl = document.getElementById('scanlines-layer');
+        if(scanlinesEl) {
+            scanlinesEl.style.display = this.data.preferences.scanlines ? 'block' : 'none';
+        }
+        // Bloom and Particles are checked at runtime in Render loop
+    },
+
+    purgeData() {
+        if(confirm("CONFIRM SYSTEM PURGE? ALL RECORDS WILL BE LOST.")) {
+            // Keep preferences, reset data
+            const prefs = this.data.preferences;
+            this.data = {
+                highscores: [0, 0, 0],
+                totalGames: 0,
+                lastScore: 0,
+                preferences: prefs
+            };
+            this.save();
+            this.updateUI();
+            SoundEngine.sfxExplosion();
+        }
+    },
+
+    updateUI() {
+        // Update Database Screen
+        const dbTotal = document.getElementById('db-total-games');
+        const dbLast = document.getElementById('db-last-score');
+        const dbEasy = document.getElementById('db-rec-easy');
+        const dbNorm = document.getElementById('db-rec-normal');
+        const dbHard = document.getElementById('db-rec-hard');
+
+        if(dbTotal) dbTotal.innerText = this.data.totalGames;
+        if(dbLast) dbLast.innerText = this.data.lastScore;
+        if(dbEasy) dbEasy.innerText = this.data.highscores[0];
+        if(dbNorm) dbNorm.innerText = this.data.highscores[1];
+        if(dbHard) dbHard.innerText = this.data.highscores[2];
+
+        // Update Settings Screen
+        const updateToggle = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) {
+                el.innerText = val ? "ON" : "OFF";
+                el.className = val ? "setting-val val-on" : "setting-val val-off";
+            }
+        };
+
+        updateToggle('opt-scanlines', this.data.preferences.scanlines);
+        updateToggle('opt-bloom', this.data.preferences.bloom);
+        updateToggle('opt-particles', this.data.preferences.particles);
+    }
+};
+
+// --- AUDIO SYNTHESIS ENGINE ---
+const SoundEngine = {
+    ctx: null,
+    init() {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+    },
+    playTone(freq, type, duration, vol = 0.1, slideTo = null) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if (slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    playNoise(duration, vol = 0.2) {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * duration;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+    },
+    sfxShoot() { this.playTone(800, 'square', 0.1, 0.05, 600); },
+    sfxRailgun() { this.playTone(1500, 'sawtooth', 0.2, 0.15, 100); this.playNoise(0.2, 0.1); },
+    sfxEnemyShoot() { this.playTone(200, 'sawtooth', 0.15, 0.05); },
+    sfxExplosion() { this.playNoise(0.3, 0.2); },
+    sfxPowerup() { 
+        this.playTone(600, 'sine', 0.1, 0.1); 
+        setTimeout(() => this.playTone(900, 'sine', 0.2, 0.1), 100);
+    },
+    sfxDash() { this.playNoise(0.1, 0.05); this.playTone(150, 'sawtooth', 0.2, 0.05); },
+    sfxHit() { this.playTone(100, 'sawtooth', 0.1, 0.1); },
+    sfxShieldBreak() { this.playTone(400, 'sine', 0.3, 0.2, 100); },
+    sfxBossSpawn() { 
+        this.playTone(50, 'square', 2.0, 0.3, 20); 
+        this.playNoise(2.0, 0.1);
+    },
+    sfxNewRecord() {
+        this.playTone(400, 'square', 0.1, 0.2);
+        setTimeout(() => this.playTone(600, 'square', 0.1, 0.2), 100);
+        setTimeout(() => this.playTone(800, 'square', 0.4, 0.2), 200);
+    }
+};
+
+// --- MATH UTILS ---
+const PI2 = Math.PI * 2;
+class Vec2 {
+    constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+    set(x, y) { this.x = x; this.y = y; return this; }
+    add(v) { this.x += v.x; this.y += v.y; return this; }
+    sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+    mult(s) { this.x *= s; this.y *= s; return this; }
+    mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+    normalize() { const m = this.mag(); if (m > 0) this.mult(1 / m); return this; }
+    copy() { return new Vec2(this.x, this.y); }
+    static dist(v1, v2) { return Math.sqrt(Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2)); }
+}
+function distToSegment(p, v, w) {
+    const l2 = Math.pow(w.x - v.x, 2) + Math.pow(w.y - v.y, 2);
+    if (l2 === 0) return Vec2.dist(p, v);
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const projection = new Vec2(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y));
+    return Vec2.dist(p, projection);
+}
+
+// --- ECS CORE ---
+class Pool {
+    constructor(createFn, initialSize = 100) {
+        this.createFn = createFn;
+        this.store = [];
+        for (let i = 0; i < initialSize; i++) this.store.push(createFn());
+    }
+    obtain() { return this.store.length > 0 ? this.store.pop() : this.createFn(); }
+    free(obj) { this.store.push(obj); }
+}
+
+const ENTITY_TYPES = {
+    PLAYER: 0, ENEMY_CHASER: 1, ENEMY_SHOOTER: 2, ENEMY_SEEKER: 7, BOSS: 8, 
+    PROJECTILE_PLAYER: 3, PROJECTILE_ENEMY: 4, PARTICLE: 5, POWERUP: 6, RAILGUN_BEAM: 9 
+};
+const POWERUP_TYPES = { HEALTH: 0, RAILGUN: 1, SHIELD: 2 };
+const DIFFICULTY_LEVELS = [
+    { name: "RECRUTA",  spawnRateMult: 1.5, healthMult: 0.7, scoreMult: 0.5, bossMult: 0.8 },
+    { name: "VETERANO", spawnRateMult: 1.0, healthMult: 1.0, scoreMult: 1.0, bossMult: 1.0 },
+    { name: "ELITE",    spawnRateMult: 0.7, healthMult: 1.5, scoreMult: 2.0, bossMult: 1.5 }
+];
+
+class Entity {
+    constructor() {
+        this.id = -1; this.active = false; this.type = 0; this.subtype = 0;
+        this.pos = new Vec2(); this.vel = new Vec2();
+        this.radius = 10; this.rotation = 0; this.color = '#fff';
+        this.life = 1.0; this.maxLife = 1.0; this.health = 100; this.damage = 10; this.scoreValue = 0;
+        this.isPlayer = false; this.invulnerable = 0;
+        this.dashCooldown = 0; this.dashTime = 0;
+        this.weaponTier = 0; this.weaponTimer = 0; this.hasShield = false;
+        this.aiTimer = 0; this.aiState = 0; 
+    }
+    reset() {
+        this.active = false; this.pos.set(0,0); this.vel.set(0,0);
+        this.rotation = 0; this.invulnerable = 0; this.isPlayer = false;
+        this.weaponTier = 0; this.weaponTimer = 0;
+        this.dashCooldown = 0; this.dashTime = 0;
+        this.aiTimer = 0; this.aiState = 0; this.hasShield = false;
+    }
+}
+
+// --- GAME ENGINE ---
+const GameEngine = {
+    canvas: null, ctx: null, width: 0, height: 0, lastTime: 0, running: false,
+    score: 0, highScore: 0,
+    shake: 0, chromaticAberration: 0,
+    wave: 1, waveTimer: 0, enemiesToSpawn: 0, spawnTimer: 0, bossActive: false,
+    currentDifficulty: 1, settings: DIFFICULTY_LEVELS[1],
+    entities: [], pool: null,
+    input: { keys: {}, mouse: new Vec2(), mouseDown: false },
+    config: { playerSpeed: 5, fireRate: 0.1, lastFire: 0, dashCooldownTime: 2.0, dashDuration: 0.2, dashSpeedMult: 4.0 },
+
+    // Boot
+    boot() {
+        StorageSystem.load();
+        this.initDOM();
+    },
+
+    initDOM() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
+        
+        // Listeners
+        window.addEventListener('keydown', e => this.input.keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => this.input.keys[e.key.toLowerCase()] = false);
+        window.addEventListener('mousemove', e => this.input.mouse.set(e.clientX, e.clientY));
+        window.addEventListener('mousedown', () => this.input.mouseDown = true);
+        window.addEventListener('mouseup', () => this.input.mouseDown = false);
+        window.addEventListener('keydown', e => { if(e.code === 'Space') this.input.keys['space'] = true; });
+        window.addEventListener('keyup', e => { if(e.code === 'Space') this.input.keys['space'] = false; });
+        window.addEventListener('touchstart', () => this.input.mouseDown = true);
+        window.addEventListener('touchend', () => this.input.mouseDown = false);
+    },
+
+    init(difficultyIndex = 1) {
+        if (this.running) return;
+        
+        this.currentDifficulty = difficultyIndex;
+        this.settings = DIFFICULTY_LEVELS[difficultyIndex];
+        
+        // Fetch persistence data
+        this.highScore = StorageSystem.getHighscore(difficultyIndex);
+        
+        // Update UI
+        document.getElementById('difficulty-display').innerText = `MODE: ${this.settings.name}`;
+        const diffDisplay = document.getElementById('difficulty-display');
+        if(difficultyIndex === 0) diffDisplay.style.color = 'var(--power-blue)';
+        else if(difficultyIndex === 2) diffDisplay.style.color = 'var(--alert-red)';
+        else diffDisplay.style.color = '#888';
+        
+        document.getElementById('highscore-display').innerText = `HI: ${this.highScore.toString().padStart(6, '0')}`;
+
+        SoundEngine.init();
+        
+        // Hide screens
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('database-screen').style.display = 'none';
+        document.getElementById('settings-screen').style.display = 'none';
+        
+        this.pool = new Pool(() => new Entity(), 2000);
+        this.entities = [];
+
+        this.spawnPlayer();
+        this.startWave(1);
+
+        this.running = true;
+        this.score = 0;
+        requestAnimationFrame(t => this.loop(t));
+    },
+
+    showDatabase() {
+        StorageSystem.updateUI();
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('database-screen').style.display = 'flex';
+        document.getElementById('settings-screen').style.display = 'none';
+    },
+
+    showSettings() {
+        StorageSystem.updateUI();
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('database-screen').style.display = 'none';
+        document.getElementById('settings-screen').style.display = 'flex';
+    },
+
+    showStartScreen() {
+        document.getElementById('database-screen').style.display = 'none';
+        document.getElementById('settings-screen').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+        // Reset notification
+        document.getElementById('record-notification').innerHTML = '';
+        document.getElementById('main-title').innerText = "Vector Storm";
+        document.getElementById('sub-title').innerText = "ENTROPY PROTOCOL V.1.7";
+    },
+
+    toggleSetting(key) {
+        StorageSystem.togglePreference(key);
+        SoundEngine.playTone(400, 'square', 0.1, 0.1);
+    },
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        if(this.canvas) {
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+    },
+
+    startWave(num) {
+        this.wave = num;
+        this.spawnTimer = 0;
+        this.bossActive = false;
+        
+        const waveEl = document.getElementById('wave-display');
+        document.getElementById('boss-ui').style.display = 'none';
+
+        if (this.wave % 5 === 0) {
+            this.enemiesToSpawn = 1; 
+            waveEl.innerText = `WARNING: BOSS DETECTED`;
+            waveEl.style.color = 'var(--boss-purple)';
+            SoundEngine.sfxBossSpawn();
+        } else {
+            this.enemiesToSpawn = 5 + Math.floor(num * 2.5);
+            waveEl.innerText = `WAVE ${num}`;
+            waveEl.style.color = 'var(--terminal-green)';
+            SoundEngine.playTone(100, 'triangle', 0.5, 0.3);
+        }
+        
+        waveEl.style.opacity = 1;
+        setTimeout(() => waveEl.style.opacity = 0, 3000);
+    },
+
+    spawnPlayer() {
+        const p = this.pool.obtain();
+        p.active = true;
+        p.type = ENTITY_TYPES.PLAYER;
+        p.isPlayer = true;
+        p.pos.set(this.width/2, this.height/2);
+        p.radius = 15;
+        p.health = 100;
+        p.color = '#00ff41';
+        this.entities.push(p);
+    },
+
+    spawnProjectile(x, y, angle, isEnemy = false) {
+        const p = this.pool.obtain();
+        p.active = true;
+        p.type = isEnemy ? ENTITY_TYPES.PROJECTILE_ENEMY : ENTITY_TYPES.PROJECTILE_PLAYER;
+        p.pos.set(x, y);
+        let speed = isEnemy ? 8 : 15;
+        if (isEnemy && this.currentDifficulty === 2) speed = 11;
+        p.vel.set(Math.cos(angle) * speed, Math.sin(angle) * speed);
+        p.radius = isEnemy ? 4 : 3;
+        p.life = 1.5;
+        p.color = isEnemy ? '#ff0033' : '#ccff00';
+        this.entities.push(p);
+        if(isEnemy) SoundEngine.sfxEnemyShoot(); else SoundEngine.sfxShoot();
+    },
+
+    fireRailgun(player) {
+        const range = 1000;
+        const endX = player.pos.x + Math.cos(player.rotation) * range;
+        const endY = player.pos.y + Math.sin(player.rotation) * range;
+        
+        const beam = this.pool.obtain();
+        beam.active = true;
+        beam.type = ENTITY_TYPES.RAILGUN_BEAM;
+        beam.pos.set(player.pos.x, player.pos.y);
+        beam.rotation = player.rotation;
+        beam.vel.set(endX, endY);
+        beam.life = 0.2;
+        beam.color = '#00ccff';
+        this.entities.push(beam);
+
+        const start = player.pos;
+        const end = new Vec2(endX, endY);
+        this.entities.forEach(e => {
+            if (!e.active) return;
+            if (e.type === ENTITY_TYPES.ENEMY_CHASER || e.type === ENTITY_TYPES.ENEMY_SHOOTER || e.type === ENTITY_TYPES.ENEMY_SEEKER || e.type === ENTITY_TYPES.BOSS) {
+                const dist = distToSegment(e.pos, start, end);
+                if (dist < e.radius + 10) { 
+                    e.health -= 100; 
+                    this.spawnParticle(e.pos.x, e.pos.y, '#00ccff', 5);
+                    if (e.health <= 0) this.destroyEnemy(e);
+                }
+            }
+        });
+        SoundEngine.sfxRailgun();
+        this.triggerShake(5);
+        this.chromaticAberration = 10;
+        const recoil = new Vec2(Math.cos(player.rotation), Math.sin(player.rotation)).mult(-10);
+        player.pos.add(recoil);
+    },
+
+    spawnBoss() {
+        const boss = this.pool.obtain();
+        boss.active = true;
+        boss.type = ENTITY_TYPES.BOSS;
+        boss.pos.set(this.width/2, -100);
+        boss.radius = 40;
+        const baseHealth = 1000 + (this.wave * 200);
+        boss.maxLife = baseHealth * this.settings.bossMult;
+        boss.health = boss.maxLife;
+        boss.scoreValue = 5000 * this.settings.scoreMult;
+        boss.color = '#bd00ff';
+        boss.aiState = 0;
+        this.entities.push(boss);
+        this.bossActive = true;
+        document.getElementById('boss-ui').style.display = 'block';
+    },
+
+    spawnEnemy() {
+        if (this.wave % 5 === 0) { this.spawnBoss(); return; }
+        let type = ENTITY_TYPES.ENEMY_CHASER;
+        const rand = Math.random();
+        if (this.wave > 1 && rand > 0.7) type = ENTITY_TYPES.ENEMY_SHOOTER;
+        if (this.wave > 2 && rand > 0.85) type = ENTITY_TYPES.ENEMY_SEEKER; 
+        const e = this.pool.obtain();
+        e.active = true;
+        e.type = type;
+        const side = Math.floor(Math.random() * 4);
+        if (side === 0) e.pos.set(Math.random() * this.width, -50);
+        else if (side === 1) e.pos.set(this.width + 50, Math.random() * this.height);
+        else if (side === 2) e.pos.set(Math.random() * this.width, this.height + 50);
+        else e.pos.set(-50, Math.random() * this.height);
+        
+        const hpMult = this.settings.healthMult;
+        const scoreMult = this.settings.scoreMult;
+        if (type === ENTITY_TYPES.ENEMY_CHASER) {
+            e.radius = 12; e.health = (20 + (this.wave * 2)) * hpMult; e.scoreValue = 100 * scoreMult; e.color = '#ff0033';
+        } else if (type === ENTITY_TYPES.ENEMY_SHOOTER) {
+            e.radius = 18; e.health = (40 + (this.wave * 4)) * hpMult; e.scoreValue = 300 * scoreMult; e.color = '#ff00ff'; e.aiTimer = Math.random();
+        } else if (type === ENTITY_TYPES.ENEMY_SEEKER) {
+            e.radius = 10; e.health = (10 + (this.wave * 2)) * hpMult; e.scoreValue = 150 * scoreMult; e.color = '#ff6600';
+        }
+        this.entities.push(e);
+    },
+
+    destroyEnemy(e) {
+        e.active = false;
+        this.spawnParticle(e.pos.x, e.pos.y, e.color, 10);
+        this.triggerShake(5);
+        this.score += e.scoreValue;
+        SoundEngine.sfxExplosion();
+        if (e.type === ENTITY_TYPES.BOSS) {
+            this.score += 5000 * this.settings.scoreMult;
+            this.triggerShake(20);
+            this.spawnParticle(e.pos.x, e.pos.y, e.color, 50);
+            this.spawnPowerup(e.pos.x, e.pos.y); 
+            this.bossActive = false;
+        } else if (Math.random() < 0.08) { 
+            this.spawnPowerup(e.pos.x, e.pos.y);
+        }
+        this.pool.free(e);
+    },
+
+    spawnPowerup(x, y) {
+        const p = this.pool.obtain();
+        p.active = true;
+        p.type = ENTITY_TYPES.POWERUP;
+        const rand = Math.random();
+        if (rand < 0.4) p.subtype = POWERUP_TYPES.HEALTH;
+        else if (rand < 0.7) p.subtype = POWERUP_TYPES.RAILGUN;
+        else p.subtype = POWERUP_TYPES.SHIELD;
+        p.pos.set(x, y); p.radius = 10; p.life = 10.0;
+        if (p.subtype === POWERUP_TYPES.HEALTH) p.color = '#00ff41';
+        else if (p.subtype === POWERUP_TYPES.RAILGUN) p.color = '#ffcc00';
+        else p.color = '#ffffff';
+        this.entities.push(p);
+    },
+
+    spawnParticle(x, y, color, count = 5) {
+        // SETTINGS CHECK: PARTICLES
+        if (!StorageSystem.data.preferences.particles) return;
+
+        for(let i=0; i<count; i++) {
+            const p = this.pool.obtain();
+            p.active = true;
+            p.type = ENTITY_TYPES.PARTICLE;
+            p.pos.set(x, y);
+            const angle = Math.random() * PI2;
+            const speed = Math.random() * 5 + 2;
+            p.vel.set(Math.cos(angle) * speed, Math.sin(angle) * speed);
+            p.life = Math.random() * 0.5 + 0.2;
+            p.radius = Math.random() * 2 + 1;
+            p.color = color;
+            this.entities.push(p);
+        }
+    },
+
+    triggerShake(amount) { this.shake = amount; },
+
+    // --- SYSTEMS ---
+    systemInput(dt) {
+        const p = this.entities.find(e => e.isPlayer && e.active);
+        if (!p) return;
+        if (p.dashCooldown > 0) p.dashCooldown -= dt;
+        let speed = this.config.playerSpeed;
+        if (this.input.keys['space'] && p.dashCooldown <= 0 && p.dashTime <= 0) {
+            p.dashTime = this.config.dashDuration; p.dashCooldown = this.config.dashCooldownTime;
+            p.invulnerable = this.config.dashDuration;
+            this.spawnParticle(p.pos.x, p.pos.y, '#00ccff', 8); SoundEngine.sfxDash();
+        }
+        if (p.dashTime > 0) { p.dashTime -= dt; speed *= this.config.dashSpeedMult; this.spawnParticle(p.pos.x, p.pos.y, 'rgba(0,255,255,0.5)', 1); }
+        const dir = new Vec2(0,0);
+        if (this.input.keys['w'] || this.input.keys['arrowup']) dir.y = -1;
+        if (this.input.keys['s'] || this.input.keys['arrowdown']) dir.y = 1;
+        if (this.input.keys['a'] || this.input.keys['arrowleft']) dir.x = -1;
+        if (this.input.keys['d'] || this.input.keys['arrowright']) dir.x = 1;
+        if (dir.mag() > 0) dir.normalize().mult(speed);
+        p.pos.add(dir);
+        p.pos.x = Math.max(p.radius, Math.min(this.width - p.radius, p.pos.x));
+        p.pos.y = Math.max(p.radius, Math.min(this.height - p.radius, p.pos.y));
+        p.rotation = Math.atan2(this.input.mouse.y - p.pos.y, this.input.mouse.x - p.pos.x);
+        if (p.weaponTier > 0) { p.weaponTimer -= dt; if (p.weaponTimer <= 0) p.weaponTier = 0; }
+        this.config.lastFire -= dt;
+        if (this.input.mouseDown && this.config.lastFire <= 0) {
+            if (p.weaponTier === 1) { this.fireRailgun(p); this.config.lastFire = 0.8; } 
+            else { this.spawnProjectile(p.pos.x + Math.cos(p.rotation)*20, p.pos.y + Math.sin(p.rotation)*20, p.rotation); this.config.lastFire = this.config.fireRate; }
+        }
+    },
+
+    systemAI(dt) {
+        const player = this.entities.find(e => e.isPlayer && e.active);
+        const targetPos = player ? player.pos : new Vec2(this.width/2, this.height/2);
+        if (this.enemiesToSpawn > 0) {
+            this.spawnTimer -= dt; const spawnRate = 0.5 * this.settings.spawnRateMult;
+            if (this.spawnTimer <= 0) { this.spawnEnemy(); this.enemiesToSpawn--; this.spawnTimer = spawnRate; }
+        } else if (!this.bossActive) {
+            const enemiesAlive = this.entities.filter(e => e.active && (e.type === ENTITY_TYPES.ENEMY_CHASER || e.type === ENTITY_TYPES.ENEMY_SHOOTER || e.type === ENTITY_TYPES.ENEMY_SEEKER || e.type === ENTITY_TYPES.BOSS)).length;
+            if (enemiesAlive === 0) { this.startWave(this.wave + 1); }
+        }
+        this.entities.forEach(e => {
+            if (!e.active) return;
+            if (e.type === ENTITY_TYPES.BOSS) {
+                const bar = document.getElementById('boss-health-bar');
+                bar.style.width = `${(e.health / e.maxLife) * 100}%`;
+                if (e.aiState === 0) { e.pos.y += 100 * dt; if (e.pos.y >= 150) e.aiState = 1; } 
+                else {
+                    e.pos.x += Math.cos(Date.now() / 1000) * 1; e.aiTimer -= dt;
+                    if (e.aiTimer <= 0) {
+                        const pattern = Math.floor(Math.random() * 2);
+                        if (pattern === 0) { for(let i=0; i<12; i++) this.spawnProjectile(e.pos.x, e.pos.y, (i / 12) * PI2 + (Date.now()/500), true); } 
+                        else { for(let i=0; i<3; i++) setTimeout(() => { if(e.active) { const angle = Math.atan2(targetPos.y - e.pos.y, targetPos.x - e.pos.x); this.spawnProjectile(e.pos.x, e.pos.y, angle + (Math.random()-0.5)*0.5, true); } }, i * 100); }
+                        e.aiTimer = 1.5 * (this.currentDifficulty === 2 ? 0.7 : 1.0);
+                    }
+                }
+                e.rotation += 0.01; return;
+            }
+            if (e.type === ENTITY_TYPES.ENEMY_CHASER) { const dir = targetPos.copy().sub(e.pos).normalize().mult(3); e.pos.add(dir); e.rotation = Math.atan2(targetPos.y - e.pos.y, targetPos.x - e.pos.x); } 
+            else if (e.type === ENTITY_TYPES.ENEMY_SEEKER) { const dir = targetPos.copy().sub(e.pos).normalize().mult(6); e.pos.add(dir); e.rotation += 0.2; }
+            else if (e.type === ENTITY_TYPES.ENEMY_SHOOTER) {
+                 const dist = Vec2.dist(e.pos, targetPos);
+                 if (dist > 300) { const dir = targetPos.copy().sub(e.pos).normalize().mult(2); e.pos.add(dir); } 
+                 else if (dist < 150) { const dir = e.pos.copy().sub(targetPos).normalize().mult(1.5); e.pos.add(dir); }
+                 e.rotation = Math.atan2(targetPos.y - e.pos.y, targetPos.x - e.pos.x); e.aiTimer -= dt;
+                 if (e.aiTimer <= 0 && dist < 600) { this.spawnProjectile(e.pos.x, e.pos.y, e.rotation, true); e.aiTimer = 2.0 * (this.currentDifficulty === 2 ? 0.6 : 1.0); }
+            }
+        });
+    },
+
+    systemPhysics(dt) {
+        const player = this.entities.find(e => e.isPlayer && e.active);
+        for (let i = 0; i < this.entities.length; i++) {
+            const e1 = this.entities[i];
+            if (!e1.active) continue;
+            if (e1.type === ENTITY_TYPES.PROJECTILE_PLAYER || e1.type === ENTITY_TYPES.PROJECTILE_ENEMY || e1.type === ENTITY_TYPES.PARTICLE || e1.type === ENTITY_TYPES.RAILGUN_BEAM) {
+                if (e1.type !== ENTITY_TYPES.RAILGUN_BEAM) e1.pos.add(e1.vel);
+                e1.life -= dt;
+                if (e1.life <= 0) { e1.active = false; this.pool.free(e1); this.entities.splice(i, 1); i--; continue; }
+            }
+            if (e1.type === ENTITY_TYPES.POWERUP) { e1.life -= dt; if (e1.life <= 0) { e1.active = false; this.pool.free(e1); this.entities.splice(i, 1); i--; continue; } }
+            if (e1.type === ENTITY_TYPES.PROJECTILE_PLAYER) {
+                for (let j = 0; j < this.entities.length; j++) {
+                    const e2 = this.entities[j];
+                    if (!e2.active || (e2.type !== ENTITY_TYPES.ENEMY_CHASER && e2.type !== ENTITY_TYPES.ENEMY_SHOOTER && e2.type !== ENTITY_TYPES.ENEMY_SEEKER && e2.type !== ENTITY_TYPES.BOSS)) continue;
+                    if (Vec2.dist(e1.pos, e2.pos) < e1.radius + e2.radius) {
+                        e2.health -= this.config.damage = 25; e1.active = false; this.spawnParticle(e1.pos.x, e1.pos.y, '#ccff00', 3); SoundEngine.sfxHit();
+                        if (e2.health <= 0) { this.destroyEnemy(e2); this.entities.splice(j, 1); if (j < i) i--; j--; }
+                        this.pool.free(e1); this.entities.splice(i, 1); i--; break;
+                    }
+                }
+            }
+            if (e1.type === ENTITY_TYPES.PROJECTILE_ENEMY && player && player.active && player.invulnerable <= 0) {
+                if (Vec2.dist(e1.pos, player.pos) < e1.radius + player.radius) {
+                    if (player.hasShield) { player.hasShield = false; SoundEngine.sfxShieldBreak(); player.invulnerable = 1.0; this.spawnParticle(player.pos.x, player.pos.y, '#ffffff', 20); } 
+                    else { const dmg = this.currentDifficulty === 2 ? 25 : 15; player.health -= dmg; player.invulnerable = 1.0; this.triggerShake(10); this.spawnParticle(player.pos.x, player.pos.y, '#ff0033', 10); SoundEngine.sfxHit(); }
+                    e1.active = false; this.pool.free(e1); this.entities.splice(i, 1); i--;
+                    if (player.health <= 0) this.gameOver();
+                }
+            }
+            if (e1.type === ENTITY_TYPES.POWERUP && player && player.active) {
+                if (Vec2.dist(e1.pos, player.pos) < e1.radius + player.radius) {
+                    if (e1.subtype === POWERUP_TYPES.HEALTH) { player.health = Math.min(100, player.health + 30); this.spawnParticle(player.pos.x, player.pos.y, '#00ff41', 10); } 
+                    else if (e1.subtype === POWERUP_TYPES.RAILGUN) { player.weaponTier = 1; player.weaponTimer = 15.0; this.spawnParticle(player.pos.x, player.pos.y, '#ffcc00', 10); } 
+                    else if (e1.subtype === POWERUP_TYPES.SHIELD) { player.hasShield = true; this.spawnParticle(player.pos.x, player.pos.y, '#ffffff', 10); }
+                    SoundEngine.sfxPowerup(); e1.active = false; this.pool.free(e1); this.entities.splice(i, 1); i--;
+                }
+            }
+            if (player && player.active && player.invulnerable <= 0) {
+                 if ((e1.type === ENTITY_TYPES.ENEMY_CHASER || e1.type === ENTITY_TYPES.ENEMY_SHOOTER || e1.type === ENTITY_TYPES.ENEMY_SEEKER || e1.type === ENTITY_TYPES.BOSS) && e1.active) {
+                    if (Vec2.dist(e1.pos, player.pos) < e1.radius + player.radius) {
+                         if (player.hasShield) { player.hasShield = false; SoundEngine.sfxShieldBreak(); player.invulnerable = 2.0; const push = player.pos.copy().sub(e1.pos).normalize().mult(100); player.pos.add(push); this.spawnParticle(player.pos.x, player.pos.y, '#ffffff', 20); } 
+                         else { const dmg = this.currentDifficulty === 2 ? 30 : 20; player.health -= dmg; player.invulnerable = 1.0; this.triggerShake(15); this.spawnParticle(player.pos.x, player.pos.y, '#ff0000', 15); SoundEngine.sfxHit(); const push = player.pos.copy().sub(e1.pos).normalize().mult(50); player.pos.add(push); }
+                        if (e1.type === ENTITY_TYPES.ENEMY_SEEKER) { this.destroyEnemy(e1); this.entities.splice(i, 1); i--; }
+                        if (player.health <= 0) this.gameOver();
+                    }
+                 }
+            } else if (player) { player.invulnerable -= dt; }
+        }
+    },
+
+    systemRender() {
+        this.ctx.globalCompositeOperation = 'source-over';
+        let tx = 0, ty = 0;
+        if (this.shake > 0) { tx = (Math.random() - 0.5) * this.shake; ty = (Math.random() - 0.5) * this.shake; this.shake *= 0.9; if (this.shake < 0.5) this.shake = 0; }
+        this.ctx.save(); this.ctx.translate(tx, ty);
+        this.ctx.fillStyle = 'rgba(5, 5, 5, 0.4)'; this.ctx.fillRect(-10, -10, this.width+20, this.height+20); 
+        this.ctx.strokeStyle = 'rgba(0, 255, 65, 0.1)'; this.ctx.lineWidth = 1; this.ctx.beginPath();
+        const gridSize = 50; for(let x=0; x<this.width; x+=gridSize) { this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.height); } for(let y=0; y<this.height; y+=gridSize) { this.ctx.moveTo(0, y); this.ctx.lineTo(this.width, y); } this.ctx.stroke();
+
+        let aberrationActive = false;
+        // SETTINGS CHECK: BLOOM (Use lighter composite only if bloom enabled)
+        const bloomEnabled = StorageSystem.data.preferences.bloom;
+
+        if (this.chromaticAberration > 0.5 && bloomEnabled) { 
+            aberrationActive = true; 
+            this.ctx.save(); 
+            this.ctx.globalCompositeOperation = 'lighter'; 
+            this.ctx.translate(5, 0); 
+            this.chromaticAberration *= 0.9; 
+        } else {
+             this.chromaticAberration = 0; // Reset if disabled or done
+        }
+
+        this.entities.forEach(e => {
+            if (!e.active) return;
+            this.ctx.save(); this.ctx.translate(e.pos.x, e.pos.y); this.ctx.rotate(e.rotation);
+            
+            // SETTINGS CHECK: BLOOM (Shadow Blur)
+            if(bloomEnabled) {
+                this.ctx.shadowBlur = 10; this.ctx.shadowColor = e.color; 
+            } else {
+                this.ctx.shadowBlur = 0;
+            }
+            
+            this.ctx.fillStyle = e.color; this.ctx.strokeStyle = e.color;
+            if (e.isPlayer) {
+                if (e.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) this.ctx.globalAlpha = 0.5; if (e.dashTime > 0) this.ctx.scale(1.2, 0.8);
+                this.ctx.beginPath(); this.ctx.moveTo(15, 0); this.ctx.lineTo(-10, 10); this.ctx.lineTo(-5, 0); this.ctx.lineTo(-10, -10); this.ctx.closePath(); this.ctx.stroke(); 
+                if (e.hasShield) { this.ctx.beginPath(); this.ctx.arc(0, 0, 25, 0, PI2); this.ctx.strokeStyle = '#ffffff'; this.ctx.lineWidth = 2; this.ctx.stroke(); }
+            } 
+            else if (e.type === ENTITY_TYPES.BOSS) {
+                this.ctx.beginPath(); for (let i = 0; i < 6; i++) { const angle = (i / 6) * PI2; this.ctx.lineTo(Math.cos(angle) * e.radius, Math.sin(angle) * e.radius); } this.ctx.closePath(); this.ctx.lineWidth = 3; this.ctx.stroke(); this.ctx.beginPath(); this.ctx.arc(0, 0, e.radius/2, 0, PI2); this.ctx.fill();
+            }
+            else if (e.type === ENTITY_TYPES.ENEMY_CHASER) { this.ctx.beginPath(); this.ctx.moveTo(10, 0); this.ctx.lineTo(-5, 5); this.ctx.lineTo(-5, -5); this.ctx.closePath(); this.ctx.stroke(); }
+            else if (e.type === ENTITY_TYPES.ENEMY_SEEKER) { this.ctx.beginPath(); this.ctx.moveTo(10, 0); this.ctx.lineTo(-8, 6); this.ctx.lineTo(-8, -6); this.ctx.closePath(); this.ctx.fill(); }
+            else if (e.type === ENTITY_TYPES.ENEMY_SHOOTER) { this.ctx.strokeRect(-8, -8, 16, 16); this.ctx.beginPath(); this.ctx.moveTo(0,0); this.ctx.lineTo(12,0); this.ctx.stroke(); }
+            else if (e.type === ENTITY_TYPES.RAILGUN_BEAM) { this.ctx.fillStyle = e.color; this.ctx.shadowBlur = bloomEnabled ? 20 : 0; this.ctx.globalAlpha = e.life * 5; this.ctx.fillRect(0, -2, 1000, 4); }
+            else if (e.type === ENTITY_TYPES.PROJECTILE_PLAYER || e.type === ENTITY_TYPES.PROJECTILE_ENEMY) { this.ctx.beginPath(); this.ctx.arc(0, 0, e.radius, 0, PI2); this.ctx.fill(); }
+            else if (e.type === ENTITY_TYPES.PARTICLE) { this.ctx.globalAlpha = e.life; this.ctx.beginPath(); this.ctx.arc(0, 0, e.radius, 0, PI2); this.ctx.fill(); }
+            else if (e.type === ENTITY_TYPES.POWERUP) {
+                const scale = 1 + Math.sin(Date.now() / 200) * 0.2; this.ctx.scale(scale, scale);
+                if (e.subtype === POWERUP_TYPES.HEALTH) { this.ctx.fillText("+", -4, 4); this.ctx.strokeRect(-6, -6, 12, 12); } 
+                else if (e.subtype === POWERUP_TYPES.RAILGUN) { this.ctx.fillText("R", -4, 4); this.ctx.strokeRect(-6, -6, 12, 12); } 
+                else { this.ctx.beginPath(); this.ctx.arc(0,0, 8, 0, PI2); this.ctx.stroke(); }
+            }
+            this.ctx.restore();
+        });
+        
+        if (aberrationActive) this.ctx.restore();
+        this.ctx.restore(); 
+
+        // Update UI
+        document.getElementById('score-display').innerText = `SCORE: ${this.score.toString().padStart(6, '0')}`;
+        const p = this.entities.find(e => e.isPlayer);
+        if (p) {
+            document.getElementById('health-display').innerText = `INTEGRITY: ${Math.max(0, Math.floor(p.health))}%`;
+            const dashEl = document.getElementById('dash-meter');
+            if (p.dashCooldown > 0) { dashEl.innerText = `DASH: ${(p.dashCooldown).toFixed(1)}s`; dashEl.style.color = '#555'; } 
+            else { dashEl.innerText = "DASH: READY"; dashEl.style.color = 'var(--power-blue)'; }
+            const shieldEl = document.getElementById('shield-status'); shieldEl.style.display = p.hasShield ? 'block' : 'none';
+            const weaponEl = document.getElementById('weapon-status');
+            if (p.weaponTier === 1) { weaponEl.innerText = `WEAPON: RAILGUN (${Math.ceil(p.weaponTimer)}s)`; weaponEl.style.color = 'var(--power-yellow)'; } 
+            else { weaponEl.innerText = "WEAPON: STANDARD"; weaponEl.style.color = '#555'; }
+        }
+    },
+
+    loop(timestamp) {
+        if (!this.running) return;
+        const dt = (timestamp - this.lastTime) / 1000;
+        this.lastTime = timestamp;
+        const safeDt = Math.min(dt, 0.1);
+        this.systemInput(safeDt);
+        this.systemAI(safeDt);
+        this.systemPhysics(safeDt);
+        this.systemRender();
+        requestAnimationFrame(t => this.loop(t));
+    },
+
+    gameOver() {
+        this.running = false;
+        
+        const isNewRecord = StorageSystem.registerScore(this.currentDifficulty, this.score);
+        if (isNewRecord) SoundEngine.sfxNewRecord();
+
+        const screen = document.getElementById('start-screen');
+        screen.style.display = 'flex';
+        
+        document.getElementById('main-title').innerText = "SYSTEM FAILURE";
+        
+        const notifyEl = document.getElementById('record-notification');
+        if (isNewRecord) {
+            notifyEl.innerHTML = `<p class="new-record-anim">>>> NEW RECORD <<<</p>`;
+        } else {
+            notifyEl.innerHTML = '';
+        }
+
+        document.getElementById('sub-title').innerText = `FINAL SCORE: ${this.score} (${this.settings.name})`;
+    }
+};
+
+// Initial Boot
+window.onload = () => GameEngine.boot();
+
+</script>
+</body>
+</html>
